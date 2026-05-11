@@ -1,9 +1,9 @@
 package shopeasy;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.*;
 
 /**
  * Task 2 – Structural Testing &amp; Code Coverage (Chapter 3)
@@ -54,6 +54,89 @@ class ShoppingCartStructuralTest {
     // Start with happy-path tests, then add tests that target specific branches.
     //
     // HINT: Run `mvn test` after every few tests to see coverage progress.
+
+
+    // Add new item doesnt exist in cart
+    @Test
+    void addNewProductToEmptyCart() {
+        cart.addItem(apple, 5);
+        assertThat(cart.total()).isEqualTo(7.50);
+    }
+
+    // Add new item already exists in cart
+    @Test
+    void addExistingProductToCart() {
+        cart.addItem(apple, 5);
+        cart.addItem(apple, 3);
+        assertThat(cart.total()).isEqualTo(12.00);
+    }
+
+    // Add different products to cart
+    @Test
+    void addMultipleProductsToCart() {
+        cart.addItem(apple, 5);
+        cart.addItem(banana, 10);
+        assertThat(cart.total()).isEqualTo(15.50);
+    }
+
+    // Remove item that exists in cart
+    @Test
+    void removeExistingProductFromCart() {
+        cart.addItem(apple, 5);
+        cart.removeItem("P001");
+        assertThat(cart.total()).isEqualTo(0.00);
+    }
+
+    // updateQuantity test for negative quantity
+    @Test
+    void updateQuantityWithInvalidValue() {
+        cart.addItem(apple, 5);
+        assertThatThrownBy(() -> cart.updateQuantity("P001", 0))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Quantity must be > 0");
+    }
+
+    // updateQuantity test for product not in cart
+    @Test
+    void updateQuantityForNonExistingProduct() {
+        assertThatThrownBy(() -> cart.updateQuantity("P999", 5))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Product not found in cart: P999");
+    }
+
+    // updateQuantity for a product doesnt match the product in cart
+    @Test
+    void updateQuantityForMismatchedProduct() {
+        cart.addItem(apple, 5);
+        assertThatThrownBy(() -> cart.updateQuantity("P002", 5))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Product not found in cart: P002");
+    }
+
+    // updateQuantity test for valid update
+    @Test
+    void updateQuantityForExistingProduct() {
+        cart.addItem(apple, 5);
+        cart.updateQuantity("P001", 10);
+        assertThat(cart.total()).isEqualTo(15.00);
+    }
+
+    // applyDiscount coverage test
+    @Test
+    void applyDiscountWithPositiveRate() {
+        cart.addItem(apple, 5);
+        double discountedTotal = cart.applyDiscount(20);
+        assertThat(discountedTotal).isEqualTo(6.00);
+    }
+
+    // Test getItems method
+    @Test
+    void getItemsReturnsCorrectCartItems() {
+        cart.addItem(apple, 5);
+        cart.addItem(banana, 10);
+        assertThat(cart.itemCount()).isEqualTo(2);
+    }
+
     // -----------------------------------------------------------------------
 
 }
