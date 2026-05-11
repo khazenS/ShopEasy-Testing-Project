@@ -1,9 +1,14 @@
 package shopeasy;
 
-import net.jqwik.api.*;
-import net.jqwik.api.constraints.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import static org.assertj.core.api.Assertions.*;
+import net.jqwik.api.Arbitraries;
+import net.jqwik.api.Arbitrary;
+import net.jqwik.api.Combinators;
+import net.jqwik.api.ForAll;
+import net.jqwik.api.Property;
+import net.jqwik.api.Provide;
+import net.jqwik.api.constraints.DoubleRange;
 
 /**
  * Task 4 – Property-Based Testing (Chapter 5)
@@ -48,7 +53,7 @@ class ShopEasyPropertyTest {
     //  * Bug class caught: any implementation path that produces a negative result
     //  *                   (e.g., discount > 100 applied to negative base).
     //  */
-    // @Property
+    // Property@
     // void finalPriceIsNeverNegative(
     //         @ForAll @DoubleRange(min = 0, max = 10_000) double base,
     //         @ForAll @DoubleRange(min = 0, max = 100)   double discount,
@@ -69,4 +74,71 @@ class ShopEasyPropertyTest {
     // }
     // -----------------------------------------------------------------------
 
+
+    /* Property: The final price can be most twice of final price( basePrice + %100 tax)
+        * Bug class caught: any implementation path that produces a result greater than twice of base price
+        *                   (e.g., tax > 100 applied to negative base).
+    */
+
+    @Property
+    void finalPriceIsAtMostTwiceOfBasePrice(
+            @ForAll @DoubleRange(min = 0, max = 10_000) double base,
+            @ForAll @DoubleRange(min = 0, max = 100)   double discount,
+            @ForAll @DoubleRange(min = 0, max = 100)   double tax) {
+
+        PriceCalculator calc = new PriceCalculator();
+        double result = calc.calculate(base, discount, tax);
+        assertThat(result).isLessThanOrEqualTo(base * (1 + 1.0));
+    }
+
+    /* Property: Cart commutativity
+       Explanation: Order doesnt effect of how many item in there in cart.
+       Bug class caught: any implementation path that isnt equal to another one.
+    
+    */
+    @Provide
+    Arbitrary<Product> validProducts() {
+        return Combinators.combine(
+                Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5),
+                Arbitraries.doubles().between(0.01, 500.0)
+        ).as((name, price) -> new Product("P-" + name, name, price, 100));
+    }
+
+    @Property
+    void cartCommutativity(
+        @ForAll("validProducts") Product productA,
+        @ForAll("validProducts") Product productB,
+        @ForAll("validProducts") Product productC) {
+            ShoppingCart cart1 = new ShoppingCart();
+            cart1.addItem(productA, 1);
+            cart1.addItem(productB, 1);
+            cart1.addItem(productC, 1);
+
+            ShoppingCart cart2 = new ShoppingCart();
+            cart2.addItem(productC, 1);
+            cart2.addItem(productB, 1);
+            cart2.addItem(productA, 1);
+
+            assertThat(cart1.total()).isEqualTo(cart2.total());
+        }
+    
+    /*  
+        Property: Monotonicity of discount rate
+        Explanation: For any fixed base and tax, increasing the discount rate never increases the final price
+        Bug class caught: any implementation path that produces a result greater than the previous one when discount rate is increased.
+    */
+
+    @Property
+    void monotonicityOfDiscountRate(
+        @ForAll @DoubleRange(min = 0, max = 10_000) double base,
+        @ForAll @DoubleRange(min = 0, max = 100)  double tax,
+        @ForAll @DoubleRange(min = 0, max = 49)  double lowerDiscount,
+        @ForAll @DoubleRange(min = 50, max = 100) double higherDiscount
+    ) {
+        PriceCalculator calc = new PriceCalculator();
+        double priceWithLowerDiscount = calc.calculate(base, lowerDiscount, tax);
+        double priceWithHigherDiscount = calc.calculate(base, higherDiscount, tax);
+
+        assertThat(priceWithHigherDiscount).isLessThanOrEqualTo(priceWithLowerDiscount);
+    }
 }
