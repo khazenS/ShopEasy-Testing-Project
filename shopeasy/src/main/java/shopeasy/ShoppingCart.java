@@ -33,16 +33,27 @@ public class ShoppingCart {
      */
     public void addItem(Product product, int quantity) {
         // TODO (Task 3): add assert pre-condition here
+        // Pre-condition assertions
+        assert product != null : "Product must not be null";
+        assert quantity > 0 : "Quantity must be > 0";
+
+        int previousCount = itemCount(); // for post condition assertion
 
         for (CartItem item : items) {
             if (item.getProduct().getId().equals(product.getId())) {
+                int previousQuantity = item.getQuantity();
                 item.setQuantity(item.getQuantity() + quantity);
                 // TODO (Task 3): add assert post-condition here
+                assert itemCount() == previousCount && item.getQuantity() == previousQuantity + quantity : "Cart should have same number of distinct items and updated quantity";
+                assert total() >= 0 : "Invariant violation: total must be >= 0";
                 return;
             }
         }
+
         items.add(new CartItem(product, quantity));
         // TODO (Task 3): add assert post-condition here
+        assert itemCount() == previousCount + 1 : "Cart should have one more distinct item";
+        assert total() >= 0 : "Invariant violation: total must be >= 0";
     }
 
     /**
@@ -53,6 +64,7 @@ public class ShoppingCart {
      */
     public void removeItem(String productId) {
         items.removeIf(item -> item.getProduct().getId().equals(productId));
+        assert total() >= 0 : "Invariant violation: total must be >= 0";
     }
 
     /**
@@ -67,6 +79,7 @@ public class ShoppingCart {
         for (CartItem item : items) {
             if (item.getProduct().getId().equals(productId)) {
                 item.setQuantity(quantity);
+                assert total() >= 0 : "Invariant violation: total must be >= 0";
                 return;
             }
         }
@@ -87,11 +100,16 @@ public class ShoppingCart {
      */
     public double applyDiscount(double discountRate) {
         // TODO (Task 3): add assert pre-condition here
-
+        // Pre-condition assertion
+        assert discountRate >= 0 && discountRate <= 100 : "Discount rate must be between 0 and 100";
         double rawTotal = total();
         double discounted = rawTotal - (rawTotal * discountRate / 100);
 
         // TODO (Task 3): add assert post-condition here
+        // Post-condition assertion
+        assert discounted <= rawTotal : "Discounted total should be less than or equal to raw total";
+        assert total() >= 0 : "Invariant violation: total must be >= 0";
+
         return discounted;
     }
 
@@ -127,6 +145,7 @@ public class ShoppingCart {
      */
     public void clear() {
         items.clear();
+        assert total() == 0 : "After clearing, total should be 0";
     }
 
     @Override

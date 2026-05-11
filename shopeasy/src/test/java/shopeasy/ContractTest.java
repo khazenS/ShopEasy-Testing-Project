@@ -1,9 +1,9 @@
 package shopeasy;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.*;
 
 /**
  * Task 3 – Design by Contract (Chapter 4)
@@ -67,6 +67,119 @@ class ContractTest {
     // void addItem_validInput_shouldNotThrow() {
     //     assertThatCode(() -> cart.addItem(product, 3)).doesNotThrowAnyException();
     // }
+
+    // Pre-Condition violations
+    @Test
+    void calculate_basePriceNegative(){
+        assertThatThrownBy(() -> calculator.calculate(-1, 10, 5))
+                .isInstanceOf(AssertionError.class);
+    }
+
+    @Test
+    void calculate_discountRateNegative(){
+        assertThatThrownBy(() -> calculator.calculate(100, -5, 5))
+                .isInstanceOf(AssertionError.class);
+    }
+    @Test
+    void calculate_discountRateAbove100(){
+        assertThatThrownBy(() -> calculator.calculate(100, 150, 5))
+                .isInstanceOf(AssertionError.class);
+    }
+
+    @Test
+    void calculate_taxRateNegative(){
+        assertThatThrownBy(() -> calculator.calculate(100, 10, -5))
+                .isInstanceOf(AssertionError.class);
+    }
+    @Test
+    void calculate_taxRateAbove100(){
+        assertThatThrownBy(() -> calculator.calculate(100, 10, 150))
+                .isInstanceOf(AssertionError.class);
+    }
+
+
+    @Test
+    void addItem_nullProduct_shouldViolatePreCondition() {
+        assertThatThrownBy(() -> cart.addItem(null, 1))
+                .isInstanceOf(AssertionError.class);
+    }
+
+    @Test
+    void addItem_zeroQuantity_shouldViolatePreCondition() {
+        assertThatThrownBy(() -> cart.addItem(product, 0))
+                .isInstanceOf(AssertionError.class);
+    }
+    @Test
+    void addItem_negativeQuantity_shouldViolatePreCondition() {
+        assertThatThrownBy(() -> cart.addItem(product, -5))
+                .isInstanceOf(AssertionError.class);
+    }
+
+    @Test
+    void applyDiscount_negativeRate_shouldViolatePreCondition() {
+        assertThatThrownBy(() -> cart.applyDiscount(-10))
+                .isInstanceOf(AssertionError.class);
+    }
+
+    @Test
+    void applyDiscount_above100Rate_shouldViolatePreCondition() {
+        assertThatThrownBy(() -> cart.applyDiscount(150))
+                .isInstanceOf(AssertionError.class);
+    }
+
+
+    // Post-Condition violations
+    @Test
+    void addItem_cartSizeIncreasedOrQuantityUpdated() {
+        cart.addItem(product, 5);
+        assertThat(cart.itemCount()).isEqualTo(1);
+        assertThat(cart.total()).isEqualTo(50.0);
+
+        cart.addItem(product, 3);
+        assertThat(cart.itemCount()).isEqualTo(1); // same product, quantity updated
+        assertThat(cart.total()).isEqualTo(80.0); // total should reflect new quantity
+    }
+
+    @Test
+    void applyDiscount_resultLessThanTotal() {
+        cart.addItem(product, 5); // total = 50.0
+        double discounted = cart.applyDiscount(20); // 20% discount
+        assertThat(discounted).isLessThan(cart.total());
+    }
+
+    @Test
+    void applyDiscount_zeroRate_resultEqualsTotal() {
+        cart.addItem(product, 5); // total = 50.0
+        double discounted = cart.applyDiscount(0); // 0% discount
+        assertThat(discounted).isEqualTo(cart.total());
+    }
+
+    @Test
+    void calculate_resultNonNegative() {
+        double finalPrice = calculator.calculate(100, 20, 10);
+        assertThat(finalPrice).isGreaterThanOrEqualTo(0);
+        double finalPrice2 = calculator.calculate(100, 0, 50);
+        assertThat(finalPrice2).isGreaterThanOrEqualTo(0);
+        double finalPrice3 = calculator.calculate(100, 50, 0);
+        assertThat(finalPrice3).isGreaterThanOrEqualTo(0);
+        double finalPrice4 = calculator.calculate(0, 20, 10);
+        assertThat(finalPrice4).isGreaterThanOrEqualTo(0);
+    }
+
+
+
+    // Invariant Tests
+    @Test
+    void totalShouldNeverBeNegative() {
+        cart.addItem(product, 5);
+        assertThat(cart.total()).isGreaterThanOrEqualTo(0);
+        cart.updateQuantity(product.getId(), 10);
+        assertThat(cart.total()).isGreaterThanOrEqualTo(0);
+        cart.applyDiscount(20);
+        assertThat(cart.total()).isGreaterThanOrEqualTo(0);
+        cart.removeItem(product.getId());
+        assertThat(cart.total()).isGreaterThanOrEqualTo(0);
+    }
     // -----------------------------------------------------------------------
 
 }
